@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Esoteric Prompt Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+--a1:#7c5cbf;--a2:#b084f5;--a3:#38c4f5;--a4:#f472c0;--a5:#34d9a0;
+--a6:#f59e0b;--a7:#ef4444;--a8:#8b5cf6;
+--tp:#f0eeff;--ts:#a090c8;--tm:#5a5478;
+--bg0:#0d0b14;--bg1:#13101f;--bg2:#1a1630;
+--rad:10px;--radl:16px;
+--ff:'Cinzel',serif;--fb:'Montserrat',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg0);color:var(--tp);font-family:var(--fb);min-height:100vh;overflow-x:hidden;}
+#bgCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+#app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:24px 20px 80px;}
+
+/* HEADER */
+.main-header{text-align:center;padding:32px 0 28px;}
+.main-title{font-family:var(--ff);font-size:2rem;color:var(--a2);letter-spacing:.1em;margin-bottom:8px;}
+.main-sub{font-size:.82rem;color:var(--ts);}
+
+/* TOP BAR */
+.top-bar{display:flex;gap:10px;justify-content:flex-end;margin-bottom:18px;flex-wrap:wrap;}
+.btn{padding:9px 20px;border-radius:var(--rad);border:none;cursor:pointer;font-family:var(--fb);font-size:.8rem;font-weight:600;letter-spacing:.04em;transition:all .2s;}
+.btn-primary{background:linear-gradient(135deg,var(--a1),var(--a2));color:#fff;}
+.btn-primary:hover{opacity:.88;transform:translateY(-1px);}
+.btn-secondary{background:rgba(176,132,245,.12);border:1px solid rgba(176,132,245,.3);color:var(--a2);}
+.btn-secondary:hover{background:rgba(176,132,245,.22);}
+.btn-ghost{background:none;border:1px solid rgba(176,132,245,.2);color:var(--ts);font-size:.75rem;padding:7px 14px;}
+.btn-ghost:hover{border-color:var(--a2);color:var(--tp);}
+.btn-danger{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#ef9999;font-size:.75rem;padding:7px 14px;}
+.btn-danger:hover{background:rgba(239,68,68,.28);}
+
+/* THEME SELECTOR */
+.theme-block{background:rgba(255,255,255,.03);border:1px solid rgba(176,132,245,.15);border-radius:var(--radl);padding:20px 22px;margin-bottom:18px;}
+.theme-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.theme-icon{font-size:2rem;transition:all .3s;}
+.theme-label{font-family:var(--ff);font-size:.72rem;color:var(--a2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;}
+.theme-select{background:rgba(255,255,255,.06);border:1px solid rgba(176,132,245,.3);border-radius:var(--rad);padding:10px 36px 10px 14px;color:var(--tp);font-family:var(--ff);font-size:.9rem;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a090c8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;min-width:300px;flex:1;}
+.theme-select:focus{outline:none;border-color:var(--a2);}
+.theme-select option{background:#1a1630;}
+
+/* SECTION BLOCKS */
+.section-block{background:rgba(255,255,255,.03);border:1px solid rgba(176,132,245,.1);border-radius:var(--radl);padding:18px 20px;margin-bottom:16px;}
+.section-title{font-family:var(--ff);font-size:.72rem;letter-spacing:.12em;color:var(--a2);margin-bottom:14px;text-transform:uppercase;}
+
+/* FIELD GRID */
+.field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:13px;}
+.field-group{display:flex;flex-direction:column;gap:5px;}
+.field-label{font-size:.68rem;color:var(--ts);letter-spacing:.07em;text-transform:uppercase;}
+.field-select{background:rgba(255,255,255,.05);border:1px solid rgba(176,132,245,.2);border-radius:var(--rad);padding:8px 30px 8px 10px;color:var(--tp);font-family:var(--fb);font-size:.78rem;cursor:pointer;transition:border-color .2s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a090c8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;width:100%;}
+.field-select:focus{outline:none;border-color:var(--a2);}
+.field-select option{background:#1a1630;}
+
+/* LOCK ROW */
+.field-header{display:flex;justify-content:space-between;align-items:center;}
+.lock-toggle{width:32px;height:18px;background:rgba(176,132,245,.12);border-radius:9px;border:1px solid rgba(176,132,245,.25);cursor:pointer;position:relative;transition:background .3s;flex-shrink:0;}
+.lock-toggle.on{background:rgba(176,132,245,.4);}
+.lock-toggle::after{content:'';position:absolute;width:12px;height:12px;background:var(--ts);border-radius:50%;top:2px;left:2px;transition:all .3s;}
+.lock-toggle.on::after{left:16px;background:var(--a2);}
+
+/* ACTION ROW */
+.action-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+
+/* OUTPUT */
+.output-section{margin-top:4px;}
+.output-card{background:rgba(255,255,255,.04);border:1px solid rgba(176,132,245,.15);border-radius:var(--radl);padding:18px 20px;margin-bottom:14px;}
+.output-label{font-size:.68rem;color:var(--a2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.output-text{font-size:.88rem;color:var(--tp);line-height:1.75;white-space:pre-wrap;word-break:break-word;}
+.output-meta{font-size:.68rem;color:var(--tm);margin-top:10px;}
+.output-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.copy-btn{background:rgba(176,132,245,.12);border:1px solid rgba(176,132,245,.25);border-radius:6px;padding:4px 12px;font-size:.7rem;color:var(--a2);cursor:pointer;transition:all .2s;font-family:var(--fb);}
+.copy-btn:hover{background:rgba(176,132,245,.28);}
+
+/* LIBRARY PANEL */
+#libraryPanel{position:fixed;right:-420px;top:0;width:400px;height:100vh;background:rgba(13,11,20,.97);border-left:1px solid rgba(176,132,245,.2);z-index:50;transition:right .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;overflow:hidden;}
+#libraryPanel.open{right:0;}
+.lib-header{padding:18px 20px;border-bottom:1px solid rgba(176,132,245,.15);display:flex;justify-content:space-between;align-items:center;}
+.lib-title{font-family:var(--ff);font-size:1rem;color:var(--a2);}
+.lib-close{background:none;border:none;color:var(--ts);font-size:1.4rem;cursor:pointer;}
+.lib-search{padding:10px 16px;border-bottom:1px solid rgba(176,132,245,.1);}
+.lib-search input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(176,132,245,.2);border-radius:var(--rad);padding:7px 12px;color:var(--tp);font-family:var(--fb);font-size:.8rem;}
+.lib-search input:focus{outline:none;border-color:var(--a2);}
+.lib-list{flex:1;overflow-y:auto;padding:12px;scrollbar-width:thin;scrollbar-color:var(--a1) transparent;}
+.lib-card{background:rgba(255,255,255,.04);border:1px solid rgba(176,132,245,.12);border-radius:var(--rad);padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:border-color .2s;}
+.lib-card:hover{border-color:rgba(176,132,245,.35);}
+.lib-card-title{font-size:.8rem;color:var(--tp);margin-bottom:4px;}
+.lib-card-meta{font-size:.68rem;color:var(--tm);}
+.lib-card-preview{font-size:.72rem;color:var(--ts);margin-top:6px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.lib-actions{padding:12px 16px;border-top:1px solid rgba(176,132,245,.1);display:flex;gap:8px;flex-wrap:wrap;}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:60;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-box{background:#1a1630;border:1px solid rgba(176,132,245,.3);border-radius:var(--radl);padding:26px 30px;width:90%;max-width:480px;}
+.modal-title{font-family:var(--ff);font-size:1.1rem;color:var(--a2);margin-bottom:16px;}
+.modal-input{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(176,132,245,.25);border-radius:var(--rad);padding:9px 13px;color:var(--tp);font-family:var(--fb);font-size:.82rem;margin-bottom:14px;}
+.modal-input:focus{outline:none;border-color:var(--a2);}
+.modal-row{display:flex;gap:10px;justify-content:flex-end;}
+
+/* TOAST */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(30px);background:rgba(176,132,245,.2);backdrop-filter:blur(12px);border:1px solid rgba(176,132,245,.4);border-radius:24px;padding:10px 24px;font-size:.82rem;color:var(--tp);z-index:100;opacity:0;transition:all .4s;pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* RESPONSIVE */
+@media(max-width:640px){
+  .field-grid{grid-template-columns:1fr 1fr;}
+  .theme-select{min-width:100%;}
+  #libraryPanel{width:100%;}
+  .main-title{font-size:1.4rem;}
+}
+@media(max-width:400px){
+  .field-grid{grid-template-columns:1fr;}
+  .action-row{flex-direction:column;align-items:stretch;}
+}
+</style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<div id="app">
+
+  <div class="main-header">
+    <div class="main-title">✦ Esoteric Prompt Generator</div>
+    <div class="main-sub">40 Mystical Themes · Deep Field Control · Professional Prompts</div>
+  </div>
+
+  <div class="top-bar">
+    <button class="btn btn-ghost" onclick="openLibrary()">📚 Library</button>
+    <button class="btn btn-ghost" onclick="exportLib()">⬇ Export</button>
+    <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">⬆ Import</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importLib(event)"/>
+  </div>
+
+  <!-- THEME SELECTOR -->
+  <div class="theme-block">
+    <div class="theme-row">
+      <div class="theme-icon" id="themeIcon">✦</div>
+      <div style="flex:1;">
+        <div class="theme-label">Choose Your Theme</div>
+        <select class="theme-select" id="themeSelect" onchange="applyTheme()">
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIELDS -->
+  <div class="section-block">
+    <div class="section-title">🎛 Subject & Scene</div>
+    <div class="field-grid" id="gridSubject"></div>
+  </div>
+  <div class="section-block">
+    <div class="section-title">📷 Camera & Composition</div>
+    <div class="field-grid" id="gridCamera"></div>
+  </div>
+  <div class="section-block">
+    <div class="section-title">💡 Lighting & Atmosphere</div>
+    <div class="field-grid" id="gridLighting"></div>
+  </div>
+  <div class="section-block">
+    <div class="section-title">🎨 Style & Render</div>
+    <div class="field-grid" id="gridStyle"></div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="section-block">
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="generatePrompts()">✨ Generate Prompts</button>
+      <button class="btn btn-secondary" onclick="randomiseAll()">🎲 Randomise All</button>
+      <button class="btn btn-ghost" onclick="resetFields()">↺ Reset</button>
+    </div>
+  </div>
+
+  <!-- OUTPUT -->
+  <div id="outputSection"></div>
+
+</div>
+
+<!-- LIBRARY PANEL -->
+<div id="libraryPanel">
+  <div class="lib-header">
+    <span class="lib-title">📚 Saved Prompts</span>
+    <button class="lib-close" onclick="closeLibrary()">✕</button>
+  </div>
+  <div class="lib-search"><input id="libSearch" placeholder="Search saved prompts…" oninput="renderLibrary()"/></div>
+  <div class="lib-list" id="libList"></div>
+  <div class="lib-actions">
+    <button class="btn btn-ghost" onclick="exportLib()">⬇ Export All</button>
+    <button class="btn btn-danger" onclick="clearLib()">🗑 Clear All</button>
+  </div>
+</div>
+
+<!-- SAVE MODAL -->
+<div class="modal-overlay" id="saveModal">
+  <div class="modal-box">
+    <div class="modal-title">💾 Save Prompt</div>
+    <input class="modal-input" id="saveTitle" placeholder="Enter a title…"/>
+    <div style="font-size:.75rem;color:var(--ts);margin-bottom:14px;line-height:1.6;" id="savePreview"></div>
+    <div class="modal-row">
+      <button class="btn btn-ghost" onclick="closeSaveModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSave()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECALL MODAL -->
+<div class="modal-overlay" id="recallModal">
+  <div class="modal-box">
+    <div class="modal-title">📖 Prompt Detail</div>
+    <div id="recallContent" style="font-size:.84rem;color:var(--tp);line-height:1.75;max-height:320px;overflow-y:auto;"></div>
+    <div class="modal-row" style="margin-top:18px;">
+      <button class="btn btn-ghost" onclick="closeRecallModal()">Close</button>
+      <button class="btn btn-primary" id="recallCopyBtn">Copy</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   FIELD DEFINITIONS — 17 deep fields, 30 options each
+   First option always 'None', rest alphabetised
+═══════════════════════════════════════════════════════════ */
+const FIELDS={
+
+  /* ── SUBJECT & SCENE ── */
+  subject:{label:'Subject / Focus',opts:['None','Altar & Sacred Objects','Ancient Deity','Angel & Divine Being','Arcane Spellcaster','Astral Traveller','Celestial Body','Crystal Formation','Dark Demon Entity','Divination Reader','Dragon & Serpent','Elemental Spirit','Faerie Being','Fallen Angel','Ghost & Apparition','Grimoire & Spell Book','High Priest / Priestess','Kraken & Sea Monster','Lich & Undead Sorcerer','Lucifer & Fallen Host','Mermaid & Sea Deity','Mystic Oracle','Nature Spirit & Dryad','Phoenix Rising','Ritual Circle','Runic Stone','Sacred Geometry Pattern','Shaman in Trance','Sigil & Magic Seal','Witch & Coven','Yggdrasil World Tree']},
+
+  action:{label:'Action / Pose',opts:['None','Ascending Into Light','Casting a Spell','Channelling Energy','Chanting & Incanting','Conjuring a Portal','Dancing Ritually','Descending Into Darkness','Drawing a Sigil','Emerging From Shadow','Floating & Levitating','Flying Through Sky','Gazing Into Void','Holding Sacred Object','Kneeling In Devotion','Lurking In Shadows','Meditating In Stillness','Performing a Ritual','Pouring an Offering','Raising Arms To Sky','Reading Ancient Text','Releasing Spirits','Rising From Water','Scrying In Mirror','Shapeshifting','Sitting Cross-Legged','Summoning An Entity','Transforming & Morphing','Walking Between Worlds','Wielding Elemental Power','Writing In Grimoire']},
+
+  setting:{label:'Setting / Environment',opts:['None','Abyssal Ocean Trench','Alien Crystal Planet','Amazon Rainforest Temple','Ancient Egyptian Temple','Arctic Frozen Tundra','Astral Void & Stars','Aztec Pyramid Summit','Byzantine Cathedral','Celtic Sacred Grove','Cosmic Nebula Field','Dark Primordial Forest','Desert Sand Dunes','Floating Sky Island','Gothic Cathedral Crypt','Greek Mountain Olympus','Haunted Mansion Interior','Himalayan Mountain Peak','Japanese Zen Garden','Lava Volcanic Crater','Medieval Castle Ruin','Moonlit Stone Circle','Norse Asgard Hall','Overgrown Ancient Ruin','Renaissance Alchemist Lab','Runic Cave With Carvings','Sacred Mountain Shrine','Sea Cave At High Tide','Siberian Winter Forest','Steaming Jungle Waterfall','Underground Crystal Cavern']},
+
+  time_of_day:{label:'Time of Day',opts:['None','Before Dawn — 4am','Blue Hour — Pre-Dawn','Blood Moon Night','Celestial — No Time','Dusk — Last Light','Early Morning Mist','Eclipse Moment','Eternal Midnight','Full Moon Midnight','Golden Hour — Sunset','Golden Hour — Sunrise','High Noon — Blazing','Late Afternoon Glow','Magic Hour — Twilight','Midday Overcast','Midnight — Witching Hour','New Moon — Starfield','Noon Equinox','Overcast Day','Perpetual Storm','Solar Eclipse','Storm Breaking — Dawn','Summer Solstice Noon','Supermoon Rising','Thunderstorm Night','Twilight — Blue Dusk','Waning Crescent Night','Waxing Crescent Eve','Winter Solstice Dark']},
+
+  /* ── CAMERA & COMPOSITION ── */
+  camera_angle:{label:'Camera Angle',opts:['None','Bird\'s Eye View — Directly Down','Close-Up — Face & Detail','Cowboy Shot — Waist Up','Dutch Tilt — Angled Frame','Establishing Wide Shot','Extreme Close-Up — Eyes Only','Extreme Wide — Epic Landscape','Eye Level — Neutral','First Person — POV','From Below — Worm\'s Eye','Full Body — Head To Toe','Ground Level — Grass View','High Angle — Looking Down','Isometric View','Low Angle — Looking Up','Medium Close-Up — Chest Up','Medium Shot — Waist Up','Off-Axis — Slightly Skewed','Over The Shoulder','Profile — Pure Side View','Raking Angle — Diagonal','Rear Shot — Behind Subject','Reverse Angle','Satellite Overhead','Tilt-Down Shot','Tilt-Up Shot','Top-Down Flat Lay','Two-Shot — Dual Subject','Underwater Looking Up']},
+
+  lens:{label:'Lens & Focal Length',opts:['None','10mm — Ultra Wide Distortion','14mm — Extreme Wide','20mm — Environmental Wide','24mm — Cinematic Wide','28mm — Street Photography','35mm — Natural Human Eye','40mm — Subtle Wide','50mm — Standard Neutral','55mm — Slight Compression','70mm — Mild Telephoto','85mm — Classic Portrait','100mm — Macro Detail','105mm — Soft Portrait','135mm — Compressed Telephoto','180mm — Long Telephoto','200mm — Wildlife Style','300mm — Extreme Compression','400mm — Distant Subject','50mm Tilt-Shift — Miniature','85mm Tilt-Shift — Selective','Anamorphic — Cinematic Flare','Fish-Eye — 180° Distortion','Macro — 1:1 Life Size','Periscope — Vertical Tunnel','Pinhole — Soft Vignette','Soft Focus Lens — Dreamy','Super Telephoto — Flat Depth','Wide Angle Macro','Zoom Burst — Motion Zoom']},
+
+  dof:{label:'Depth of Field',opts:['None','Bokeh — Circular Light Orbs','Bokeh — Hexagonal Aperture','Deep Focus — All Sharp','Defocused Background — Soft','Defocused Foreground Blur','Double Bokeh — Front & Back','Dreamy Soft Focus Overall','Extreme Shallow — Razor Thin','Focus Pull — Mid To Back','Focus Rack — Sharp To Blur','Front Focus — Sharp Foreground','Full Depth — Landscape Sharp','Gaussian Blur Background','Lens Flare With Shallow DOF','Long Focus Telephoto Blur','Macro Depth — Millimetre Thin','Medium Depth — Subject Sharp','Motion Blur — Subject Moving','Neutral Density — Flat Depth','Out Of Focus — Abstract','Partial Focus — One Element','Radial Blur — Zoom Effect','Sharp Centre — Vignette Edge','Shallow DOF — f/1.2','Shallow DOF — f/1.8','Shallow DOF — f/2.8','Split Focus — Dual Plane','Tilt-Shift Miniature Blur','Wide Open Aperture — f/0.95']},
+
+  composition:{label:'Composition Style',opts:['None','Atmospheric Perspective — Depth','Centred — Symmetrical','Colour Blocking — Bold Zones','Diagonal Leading Lines','Dynamic Tension — Imbalanced','Figure-Ground Contrast','Fill Frame — No Negative Space','Foreground Interest — Frame','Frame Within A Frame','Golden Ratio Spiral','Golden Triangle','Horizon Line — Low Third','Horizon Line — Upper Third','Layers — Fore Mid Back','Leading Lines To Subject','Mirror Symmetry','Negative Space — Minimal','Odd Numbers — Three Elements','Overlapping Elements','Pattern & Repetition','Radial Composition — Burst','Rule Of Odds','Rule Of Thirds','S-Curve Composition','Silhouette Against Light','Split Composition — Halved','Texture Fill — Abstract','Triangular Composition','Tunnel Effect — Depth']},
+
+  /* ── LIGHTING & ATMOSPHERE ── */
+  lighting_type:{label:'Lighting Type',opts:['None','Ambient — Soft Wrap Around','Axial — Flat Front Light','Back Light — Rim & Silhouette','Bounce Light — Reflected Fill','Broad Lighting — Wide Face','Butterfly Light — Under Chin','Chiaroscuro — Extreme Contrast','Cinematic Three-Point','Cross Light — Dual Side','Fill Light — Shadow Reduce','Flat Light — No Shadow','Front Light — Even Illumination','Göss Lighting — Very Soft','Hard Light — Sharp Shadows','High Key — Bright Airy','Kicker Light — Accent Edge','Loop Lighting — Classic Portrait','Low Key — Dark & Moody','Natural Only — Practical','Paramount Lighting — Glamour','Practical Only — Scene Sources','Rembrandt — Triangle Shadow','Short Lighting — Narrow Face','Side Light — Split Face','Silhouette — Back Lit Only','Soft Box — Diffused Wrap','Split Lighting — Half Shadow','Top Light — Overhead Drama','Under Light — Horror Effect']},
+
+  light_source:{label:'Light Source',opts:['None','Aurora Borealis','Bioluminescent Organisms','Blacklight UV','Bonfire & Campfire','Candle Flame Only','Crystal & Gemstone Glow','Divine Ray — God Light','Electrical Lightning','Embers & Dying Fire','Fire Torch Wall-Mounted','Forge & Foundry Heat','Full Moon Reflection','Lava & Magma Glow','Lightning Storm Flash','Meteorite Impact Flash','Moonlight Through Clouds','Neon Sign Artificial','Northern Lights','Phosphorescent Cave','Portal Energy Vortex','Sacred Flame Ritual','Solar Flare Burst','Spectral Ghost Light','Spirit Orb Floating','Star & Nebula Deep Space','Stained Glass Filtered','Sun Through Tree Canopy','Volcanic Eruption Glow','Witch Fire — Green Flame']},
+
+  shadow:{label:'Shadow Detail',opts:['None','Cast Shadow — Hard Edge','Cast Shadow — Soft Edge','Coloured Shadow — Tinted','Deep Shadow — Near Black','Dappled Shadow — Leaf Filter','Double Shadow — Dual Source','Drop Shadow — Floating Object','Feathered Shadow — Gradual','Fill Shadow — Controlled Depth','Form Shadow — Dimensional','Graded Shadow — Light To Dark','Hard Shadow — Noon Sun','Long Shadow — Low Sun Angle','Merged Shadows — Pool','No Shadow — High Key','Penumbra — Soft Fringe','Projected Pattern Shadow','Radiating Shadow — Burst','Rembrandt Triangle — Cheek','Rim Shadow — Edge Definition','Self Shadow — Body Fold','Shadow Play — Pattern On Wall','Shallow Shadow — Faint Depth','Short Shadow — High Sun','Soft Shadow — Diffused Light','Subsurface Scatter — Skin Glow','Translucent Shadow — Glass','Under-Eye Shadow — Drama','Volumetric Shadow — God Ray']},
+
+  atmosphere:{label:'Atmosphere & FX',opts:['None','Ash & Ember Particles','Aurora Shimmer','Bioluminescent Mist','Blood Rain Falling','Blizzard & Ice Crystals','Cherry Blossom Petals','Cinematic Lens Flare','Dense Fog & Haze','Desert Heat Shimmer','Dust Particles Floating','Embers Rising','Energy Particles Sparkling','Fire & Smoke Rising','Fireflies & Orbs','Glowing Runes In Air','God Rays — Volumetric Light','Heavy Rain Downpour','Lightning Arc Crackling','Magic Circle Glowing','Misty Water Vapour','Moonbeam Shafts','Petals & Leaves Swirling','Pollen & Spores Drifting','Rainbow Light Refraction','Sacred Geometry Overlay','Snowflakes Falling','Spider Webs Glistening','Stars Shooting Overhead','Swirling Arcane Smoke']},
+
+  /* ── STYLE & RENDER ── */
+  art_style:{label:'Art Style',opts:['None','Abstract Expressionism','Art Deco — Geometric Elegant','Art Nouveau — Organic Flowing','Aztec & Mayan Codex','Baroque — Dramatic Classical','Byzantine Icon — Gold Flat','Celtic Knotwork Illustration','Chinese Ink Wash Painting','Concept Art — Game & Film','Dark Romanticism — Gloomy','Digital Painting — Detailed','Egyptian Hieroglyphic Relief','Engraving — Fine Line Black','Expressionism — Emotional Distort','Folk Art — Naive & Bold','Gothic — Medieval Dark','Impressionism — Loose Brush','Japanese Ukiyo-e Woodblock','Lovecraftian — Cosmic Horror','Medieval Illuminated Manuscript','Minimalism — Clean & Sparse','Norse Viking Knotwork Carving','Oil Painting — Classical','Photorealism — Hyperdetailed','Pre-Raphaelite — Romantic Detail','Psychedelic — Vivid & Surreal','Symbolism — Hidden Meaning','Visionary Art — Spiritual','Watercolour — Soft Wash','Woodcut — Bold High Contrast']},
+
+  render_engine:{label:'Render Engine / Style',opts:['None','Arnold Renderer — Photorealistic','Blender Cycles — Ray Traced','Blender EEVEE — Real-Time','Chaos V-Ray — Arch Viz','Cinema 4D — Smooth 3D','ComfyUI — Node Workflow','Corona Renderer — Warm Light','Daz Studio — Figure Render','Frostbite Engine — Game FX','Houdini FX — Simulation','Keyshot — Product Quality','Lumion — Landscape Arch','Mental Ray — Classic CG','Midjourney v6 Aesthetic','Octane Render — Unbiased','Redshift — GPU Fast','Stable Diffusion XL','Substance Designer — Texture','Twinmotion — Real-Time','Unreal Engine 5 — Lumen','Unity HDRP — Game Engine','V-Ray Next — Interior','Vray GPU — Rapid Render','ZBrush Sculptris — Organic','Zbrush — Detailed Sculpt']},
+
+  colour_palette:{label:'Colour Palette',opts:['None','Acid Neon — Toxic Bright','Analogous — Harmonious Hues','Antique — Faded Muted Brown','Black & White — Monochrome','Blood & Gold — Red Warm','Blue Midnight — Cool Dark','Complementary — High Contrast','Cool Grey — Desaturated','Crimson & Black — Dramatic','Cyberpunk — Neon On Dark','Dark Jewel — Rich Deep','Earthy Muted — Natural Tones','Emerald & Gold — Lush Rich','Fire & Ash — Orange Dark','Forest Green — Natural','Gold & Shadow — Luxe','High Contrast — Pure B&W','Iridescent — Colour Shift','Jewel Tone — Vivid Rich','Lavender Dream — Soft Purple','Monochromatic — Single Hue','Muted Pastel — Soft Washed','Ochre & Terracotta — Warm','Rainbow Spectrum — Full','Rose Gold — Warm Pink','Silver & Blue — Cold Metallic','Split Complementary','Teal & Copper — Patina','Triadic — Three Hue Balance','Violet & Gold — Mystical']},
+
+  texture:{label:'Texture & Material',opts:['None','Aged Parchment & Vellum','Brushed Gold Metallic','Burnished Copper Patina','Carved Stone — Ancient','Chitin & Insect Shell','Cracked Dry Earth','Crystal & Gemstone Facets','Dragon Scale — Iridescent','Embossed Leather Tooled','Etched Iron — Rust Edge','Feather & Down — Light','Frosted Glass — Translucent','Fur & Animal Pelt','Glowing Lava Rock','Ice Crystal — Translucent','Iridescent Beetle Shell','Liquid Mercury — Reflective','Marble — Veined Polished','Moss & Lichen Covered','Obsidian — Glassy Black','Oil Slick — Rainbow Sheen','Polished Bone — Smooth','Rough Bark — Ancient Tree','Rusted Metal — Flaking','Sand & Desert Grit','Silk & Velvet Fabric','Smoke & Vapour — Wispy','Thorns & Bramble — Sharp','Wet Stone — Glistening','Woven Tapestry — Textile']},
+
+  mood:{label:'Mood / Emotion',opts:['None','Agonised & Tortured','Ancient & Timeless','Awe-Inspiring & Vast','Blissful & Transcendent','Chaotic & Frenzied','Cold & Indifferent','Dark & Foreboding','Desolate & Abandoned','Dreamlike & Surreal','Ecstatic & Euphoric','Eerie & Unsettling','Eldritch & Unknowable','Epic & Grandiose','Ethereal & Otherworldly','Fierce & Aggressive','Grief & Melancholy','Haunting & Atmospheric','Intimate & Personal','Joyful & Celebratory','Lonely & Isolated','Majestic & Regal','Meditative & Still','Menacing & Threatening','Mysterious & Enigmatic','Nostalgic & Wistful','Ominous & Oppressive','Peaceful & Serene','Powerful & Commanding','Sacred & Devotional','Triumphant & Victorious']},
+
+  quality:{label:'Quality Tags',opts:['None','Award-Winning Photography','Cinematic 4K Film Grain','Cinematic Anamorphic','Cinematic Colour Grade','Coherent Sharp Details','Contest Winner ArtStation','Detailed Intricate Fine Art','Editorial Photography','Featured On 500px','Film Photography — Kodak','Film Photography — Portra 400','Hyperdetailed Masterpiece','Hyper-Realistic 8K Ultra','Instagram Photography','Magazine Cover Quality','Museum Quality Fine Art','National Geographic Photo','Photorealistic Ray-Traced','Professional Portfolio','RAW Unprocessed Aesthetic','Sharp Focus Throughout','Shot On Hasselblad','Shot On Phase One','Shot On Sony A7R V','Studio Quality Lighting','Textbook Illustration Quality','Trending On ArtStation','Unreal Engine Cinematic','Vogue Editorial Style']}
+
+};
+
+/* ═══════════════════════════════════════════════════════════
+   THEMES — 40 subjects with full field defaults
+═══════════════════════════════════════════════════════════ */
+const THEMES=[
+  {id:'none',label:'— Select a Theme —',icon:'✦',defaults:{}},
+  {id:'tarot',label:'🃏 Tarot & Divination',icon:'🃏',defaults:{subject:'Divination Reader',action:'Scrying In Mirror',setting:'Gothic Cathedral Crypt',time_of_day:'Full Moon Midnight',camera_angle:'Medium Close-Up — Chest Up',lens:'85mm — Classic Portrait',dof:'Shallow DOF — f/1.8',composition:'Rule Of Thirds',lighting_type:'Rembrandt — Triangle Shadow',light_source:'Candle Flame Only',shadow:'Rembrandt Triangle — Cheek',atmosphere:'Fireflies & Orbs',art_style:'Art Nouveau — Organic Flowing',render_engine:'Octane Render — Unbiased',colour_palette:'Violet & Gold — Mystical',texture:'Aged Parchment & Vellum',mood:'Mysterious & Enigmatic',quality:'Hyperdetailed Masterpiece'}},
+  {id:'astrology',label:'♈ Astrology & Zodiac',icon:'♈',defaults:{subject:'Celestial Body',action:'Floating & Levitating',setting:'Cosmic Nebula Field',time_of_day:'New Moon — Starfield',camera_angle:'Extreme Wide — Epic Landscape',lens:'24mm — Cinematic Wide',dof:'Deep Focus — All Sharp',composition:'Radial Composition — Burst',lighting_type:'Ambient — Soft Wrap Around',light_source:'Star & Nebula Deep Space',shadow:'No Shadow — High Key',atmosphere:'Stars Shooting Overhead',art_style:'Digital Painting — Detailed',render_engine:'Unreal Engine 5 — Lumen',colour_palette:'Blue Midnight — Cool Dark',texture:'Crystal & Gemstone Facets',mood:'Awe-Inspiring & Vast',quality:'Cinematic Anamorphic'}},
+  {id:'alchemy',label:'⚗️ Alchemy & Hermeticism',icon:'⚗️',defaults:{subject:'Arcane Spellcaster',action:'Performing a Ritual',setting:'Renaissance Alchemist Lab',time_of_day:'Midnight — Witching Hour',camera_angle:'Medium Shot — Waist Up',lens:'50mm — Standard Neutral',dof:'Medium Depth — Subject Sharp',composition:'Centred — Symmetrical',lighting_type:'Chiaroscuro — Extreme Contrast',light_source:'Forge & Foundry Heat',shadow:'Deep Shadow — Near Black',atmosphere:'Fire & Smoke Rising',art_style:'Medieval Illuminated Manuscript',render_engine:'Octane Render — Unbiased',colour_palette:'Gold & Shadow — Luxe',texture:'Burnished Copper Patina',mood:'Ancient & Timeless',quality:'Museum Quality Fine Art'}},
+  {id:'moon',label:'🌕 Moon Magic & Lunar Rites',icon:'🌕',defaults:{subject:'High Priest / Priestess',action:'Raising Arms To Sky',setting:'Moonlit Stone Circle',time_of_day:'Full Moon Midnight',camera_angle:'Low Angle — Looking Up',lens:'35mm — Natural Human Eye',dof:'Deep Focus — All Sharp',composition:'Silhouette Against Light',lighting_type:'Back Light — Rim & Silhouette',light_source:'Full Moon Reflection',shadow:'Long Shadow — Low Sun Angle',atmosphere:'Misty Water Vapour',art_style:'Dark Romanticism — Gloomy',render_engine:'Octane Render — Unbiased',colour_palette:'Silver & Blue — Cold Metallic',texture:'Wet Stone — Glistening',mood:'Sacred & Devotional',quality:'Cinematic 4K Film Grain'}},
+  {id:'kabbalah',label:'✡ Kabbalah & Tree of Life',icon:'✡',defaults:{subject:'Sacred Geometry Pattern',action:'Channelling Energy',setting:'Byzantine Cathedral',time_of_day:'Celestial — No Time',camera_angle:'Centred — Symmetrical',lens:'50mm — Standard Neutral',dof:'Deep Focus — All Sharp',composition:'Radial Composition — Burst',lighting_type:'Top Light — Overhead Drama',light_source:'Divine Ray — God Light',shadow:'Volumetric Shadow — God Ray',atmosphere:'Sacred Geometry Overlay',art_style:'Byzantine Icon — Gold Flat',render_engine:'Octane Render — Unbiased',colour_palette:'Gold & Shadow — Luxe',texture:'Carved Stone — Ancient',mood:'Sacred & Devotional',quality:'Museum Quality Fine Art'}},
+  {id:'wicca',label:'☽ Wicca & Witchcraft',icon:'☽',defaults:{subject:'Witch & Coven',action:'Dancing Ritually',setting:'Celtic Sacred Grove',time_of_day:'Full Moon Midnight',camera_angle:'Establishing Wide Shot',lens:'24mm — Cinematic Wide',dof:'Deep Focus — All Sharp',composition:'Rule Of Thirds',lighting_type:'Practical Only — Scene Sources',light_source:'Bonfire & Campfire',shadow:'Soft Shadow — Diffused Light',atmosphere:'Embers Rising',art_style:'Dark Romanticism — Gloomy',render_engine:'Octane Render — Unbiased',colour_palette:'Emerald & Gold — Lush Rich',texture:'Moss & Lichen Covered',mood:'Ecstatic & Euphoric',quality:'Cinematic 4K Film Grain'}},
+  {id:'serpent',label:'🐉 Serpent & Dragon Lore',icon:'🐉',defaults:{subject:'Dragon & Serpent',action:'Rising From Water',setting:'Lava Volcanic Crater',time_of_day:'Twilight — Blue Dusk',camera_angle:'Low Angle — Looking Up',lens:'24mm — Cinematic Wide',dof:'Deep Focus — All Sharp',composition:'Diagonal Leading Lines',lighting_type:'Back Light — Rim & Silhouette',light_source:'Lava & Magma Glow',shadow:'Hard Shadow — Noon Sun',atmosphere:'Fire & Smoke Rising',art_style:'Concept Art — Game & Film',render_engine:'Unreal Engine 5 — Lumen',colour_palette:'Fire & Ash — Orange Dark',texture:'Dragon Scale — Iridescent',mood:'Fierce & Aggressive',quality:'Unreal Engine Cinematic'}},
+  {id:'angel',label:'👼 Angels & Divine Messengers',icon:'👼',defaults:{subject:'Angel & Divine Being',action:'Ascending Into Light',setting:'Cosmic Nebula Field',time_of_day:'Golden Hour — Sunrise',camera_angle:'Low Angle — Looking Up',lens:'35mm — Natural Human Eye',dof:'Shallow DOF — f/1.8',composition:'Centred — Symmetrical',lighting_type:'High Key — Bright Airy',light_source:'Divine Ray — God Light',shadow:'Soft Shadow — Diffused Light',atmosphere:'God Rays — Volumetric Light',art_style:'Baroque — Dramatic Classical',render_engine:'Octane Render — Unbiased',colour_palette:'Gold & Shadow — Luxe',texture:'Feather & Down — Light',mood:'Awe-Inspiring & Vast',quality:'Museum Quality Fine Art'}},
+  {id:'demon',label:'😈 Demonology & Infernal Arts',icon:'😈',defaults:{subject:'Dark Demon Entity',action:'Summoning An Entity',setting:'Gothic Cathedral Crypt',time_of_day:'Eternal Midnight',camera_angle:'Low Angle — Looking Up',lens:'24mm — Cinematic Wide',dof:'Medium Depth — Subject Sharp',composition:'Dynamic Tension — Imbalanced',lighting_type:'Low Key — Dark & Moody',light_source:'Fire Torch Wall-Mounted',shadow:'Deep Shadow — Near Black',atmosphere:'Swirling Arcane Smoke',art_style:'Dark Romanticism — Gloomy',render_engine:'Octane Render — Unbiased',colour_palette:'Crimson & Black — Dramatic',texture:'Obsidian — Glassy Black',mood:'Menacing & Threatening',quality:'Cinematic Colour Grade'}},
+  {id:'shamanism',label:'🥁 Shamanism & Spirit World',icon:'🥁',defaults:{subject:'Shaman in Trance',action:'Dancing Ritually',setting:'Siberian Winter Forest',time_of_day:'Blue Hour — Pre-Dawn',camera_angle:'Medium Shot — Waist Up',lens:'35mm — Natural Human Eye',dof:'Shallow DOF — f/2.8',composition:'Rule Of Thirds',lighting_type:'Practical Only — Scene Sources',light_source:'Bonfire & Campfire',shadow:'Soft Shadow — Diffused Light',atmosphere:'Aurora Shimmer',art_style:'Folk Art — Naive & Bold',render_engine:'Blender Cycles — Ray Traced',colour_palette:'Earthy Muted — Natural Tones',texture:'Fur & Animal Pelt',mood:'Dreamlike & Surreal',quality:'Cinematic 4K Film Grain'}},
+  {id:'mythology',label:'🏛️ World Mythology & Pantheons',icon:'🏛️',defaults:{subject:'Ancient Deity',action:'Wielding Elemental Power',setting:'Greek Mountain Olympus',time_of_day:'Noon Equinox',camera_angle:'Low Angle — Looking Up',lens:'24mm — Cinematic Wide',dof:'Deep Focus — All Sharp',composition:'Centred — Symmetrical',lighting_type:'Cinematic Three-Point',light_source:'Solar Flare Burst',shadow:'Hard Shadow — Noon Sun',atmosphere:'Lightning Arc Crackling',art_style:'Baroque — Dramatic Classical',render_engine:'Unreal Engine 5 — Lumen',colour_palette:'Gold & Shadow — Luxe',texture:'Marble — Veined Polished',mood:'Majestic & Regal',quality:'Museum Quality Fine Art'}},
+  {id:'sacred_geo',label:'🔯 Sacred Geometry & Cosmos',icon:'🔯',defaults:{subject:'Sacred Geometry Pattern',action:'Channelling Energy',setting:'Astral Void & Stars',time_of_day:'Celestial — No Time',camera_angle:'Bird\'s Eye View — Directly Down',lens:'50mm — Standard Neutral',dof:'Deep Focus — All Sharp',composition:'Radial Composition — Burst',lighting_type:'Ambient — Soft Wrap Around',light_source:'Crystal & Gemstone Glow',shadow:'No Shadow — High Key',atmosphere:'Sacred Geometry Overlay',art_style:'Digital Painting — Detailed',render_engine:'Octane Render — Unbiased',colour_palette:'Iridescent — Colour Shift',texture:'Crystal & Gemstone Facets',mood:'Awe-Inspiring & Vast',quality:'Hyperdetailed Masterpiece'}},
+  {id:'fairy',label:'🧚 Faeries & Otherworldly Beings',icon:'🧚',defaults:{subject:'Faerie Being',action:'Dancing Ritually',setting:'Dark Primordial Forest',time_of_day:'Magic Hour — Twilight',camera_angle:'Eye Level — Neutral',lens:'85mm — Classic Portrait',dof:'Shallow DOF — f/1.8',composition:'Foreground Interest — Frame',lighting_type:'Soft Box — Diffused Wrap',light_source:'Bioluminescent Organisms',shadow:'Dappled Shadow — Leaf Filter',atmosphere:'Fireflies & Orbs',art_style:'Art Nouveau — Organic Flowing',render_engine:'Octane Render — Unbiased',colour_palette:'Iridescent — Colour Shift',texture:'Moss & Lichen Covered',mood:'Ethereal & Otherworldly',quality:'Hyperdetailed Masterpiece'}},
+  {id:'elemental',label:'🔥 Elemental Magic & Forces',icon:'🔥',defaults:{subject:'Elemental Spirit',action:'Wielding Elemental Power',setting:'Lava Volcanic Crater',time_of_day:'Perpetual Storm',camera_angle:'Low Angle — Looking Up',lens:'24mm — Cinematic Wide',dof:'Deep Focus — All Sharp',composition:'Dynamic Tension — Imbalanced',lighting_type:'Back Light — Rim & Silhouette',light_source:'Lava & Magma Glow',shadow:'Hard Shadow — Noon Sun',atmosphere:'Fire & Smoke Rising',art_style:'Concept Art — Game & Film',render_engine:'Unreal Engine 5 — Lumen',colour_palette:'Fire & Ash — Orange Dark',texture:'Glowing Lava Rock',mood:'Fierce & Aggressive',quality:'Unreal Engine Cinematic'}},
+  {id:'hermetic',label:'☿ Hermetic Philosophy',icon:'☿',defaults:{subject:'Arcane Spellcaster',action:'Reading Ancient Text',setting:'Renaissance Alchemist Lab',time_of_day:'Midnight — Witching Hour',camera_angle:'Medium Close-Up — Chest Up',lens:'50mm — Standard Neutral',dof:'Medium Depth — Subject Sharp',composition:'Rule Of Thirds',lighting_type:'Rembrandt — Triangle Shadow',light_source:'Candle Flame Only',shadow:'Rembrandt Triangle — Cheek',atmosphere:'Swirling Arcane Smoke',art_style:'Engraving — Fine Line Black',render_engine:'Blender Cycles — Ray Traced',colour_palette:'Gold & Shadow — Luxe',texture:'Aged Parchment & Vellum',mood:'Ancient & Timeless',quality:'Museum Quality Fine Art'}},
+  {id:'gnostic',label:'👁️ Gnosticism & Hidden Gospels',icon:'👁️',defaults:{subject:'High Priest / Priestess',action:'Gazing Into Void',setting:'Byzantine Cathedral',time_of_day:'Celestial — No Time',camera_angle:'Medium Close-Up — Chest Up',lens:'85mm — Classic Portrait',dof:'Shallow DOF — f/1.8',composition:'Centred — Symmetrical',lighting_type:'Top Light — Overhead Drama',light_source:'Divine Ray — God Light',shadow:'Volumetric Shadow — God Ray',atmosphere:'God Rays — Volumetric Light',art_style:'Byzantine Icon — Gold Flat',render_engine:'Octane Render — Unbiased',colour_palette:'Gold & Shadow — Luxe',texture:'Aged Parchment & Vellum',mood:'Sacred & Devotional',quality:'Museum Quality Fine Art'}},
+  {id:'numerology',label:'🔢 Numerology & Sacred Numbers',icon:'🔢',defaults:{subject:'Sacred Geometry Pattern',action:'Drawing a Sigil',setting:'Astral Void & Stars',time_of_day:'Celestial — No Time',camera_angle:'Bird\'s Eye View — Directly Down',lens:'50mm — Standard Neutral',dof:'Deep Focus — All Sharp',composition:'Radial Composition — Burst',lighting_type:'Ambient — Soft Wrap Around',light_source:'Crystal & Gemstone Glow',shadow:'No Shadow — High Key',atmosphere:'Glowing Runes In Air',art_style:'Digital Painting — Detailed',render_engine:'Octane Render — Unbiased',colour_palette:'Violet & Gold — Mystical',texture:'Crystal & Gemstone Facets',mood:'Mysterious & Enigmatic',quality:'Hyperdetailed Masterpiece'}},
+  {id:'dreamwork',label:'💤 Dream Work & Lucid Dreaming',icon:'💤',defaults:{subject:'Astral Traveller',action:'Floating & Levitating',setting:'Astral Void & Stars',time_of_day:'Eternal Midnight',camera_angle:'Eye Level — Neutral',lens:'35mm — Natural Human Eye',dof:'Dreamy Soft Focus Overall',composition:'Negative Space — Minimal',lighting_type:'Ambient — Soft Wrap Around',light_source:'Spirit Orb Floating',shadow:'Feathered Shadow — Gradual',atmosphere:'Swirling Arcane Smoke',art_style:'Psychedelic — Vivid & Surreal',render_engine:'Octane Render — Unbiased',colour_palette:'Lavender Dream — Soft Purple',texture:'Smoke & Vapour — Wispy',mood:'Dreamlike & Surreal',quality:'Cinematic Colour Grade'}},
+  {id:'rune',label:'⚡ Rune Casting & Norse Magic',icon:'⚡',defaults:{subject:'Runic Stone',action:'Drawing a Sigil',setting:'Norse Asgard Hall',time_of_day:'Thunderstorm Night',camera_angle:'Medium Close-Up — Chest Up',lens:'50mm — Standard Neutral',dof:'Medium Depth — Subject Sharp',composition:'Rule Of Thirds',lighting_type:'Chiaroscuro — Extreme Contrast',light_source:'Electrical Lightning',shadow:'Hard Shadow — Noon Sun',atmosphere:'Lightning Arc Crackling',art_style:'Norse Viking Knotwork Carving',render_engine:'Blender Cycles — Ray Traced',colour_palette:'Silver & Blue — Cold Metallic',texture:'Carved Stone — Ancient',mood:'Powerful & Commanding',quality:'Cinematic 4K Film Grain'}},
+  {id:'voodoo',label:'🗿 Voodoo & Hoodoo',icon:'🗿',defaults:{subject:'Ritual Circle',action:'Performing a Ritual',setting:'Dark Primordial Forest',time_of_day:'Midnight — Witching Hour',camera_angle:'Medium Shot — Waist Up',lens:'35mm — Natural Human Eye',dof:'Shallow DOF — f/2.8',composition:'Centred — Symmetrical',lighting_type:'Practical Only — Scene Sources',light_source:'Bonfire & Campfire',shadow:'Deep Shadow — Near Black',atmosphere:'Fire & Smoke Rising',art_style:'Folk Art — Naive & Bold',render_engine:'Blender Cycles — Ray Traced',colour_palette:'Crimson & Black — Dramatic',texture:'Woven Tapestry — Textile',mood:'Ominous & Oppressive',quality:'Cinematic 4K Film Grain'}},
+  {id:'candle',label:'🕯️ Candle Magic & Rituals',icon:'🕯️',defaults:{subject:'Altar & Sacred Objects',action:'Performing a Ritual',setting:'Gothic Cathedral Crypt',time_of_day:'Midnight — Witching Hour',camera_angle:'Medium Close-Up — Chest Up',lens:'85mm — Classic Portrait',dof:'Shallow DOF — f/1.8',composition:'Centred — Symmetrical',lighting_type:'Practical Only — Scene Sources',light_source:'Candle Flame Only',shadow:'Soft Shadow — Diffused Light',atmosphere:'Dense Fog & Haze',art_style:'Dark Romanticism — Gloomy',render_engine:'Octane Render — Unbiased',colour_palette:'Gold & Shadow — Luxe',texture:'Aged Parchment & Vellum',mood:'Sacred & Devotional',quality:'Cinematic 4K Film Grain'}},
+  {id:'crystal',label:'💎 Crystal & Gemstone Magic',icon:'💎',defaults:{subject:'Crystal Formation',action:'Channelling Energy',setting:'Underground Crystal Cavern',time_of_day:'Celestial — No Time',camera_angle:'Close-Up — Face & Detail',lens:'100mm — Macro Detail',dof:'Shallow DOF — f/2.8',composition:'Fill Frame — No Negative Space',lighting_type:'Ambient — Soft Wrap Around',light_source:'Crystal & Gemstone Glow',shadow:'Translucent Shadow — Glass',atmosphere:'Bioluminescent Mist',art_style:'Digital Painting — Detailed',render_engine:'Octane Render — Unbiased',colour_palette:'Iridescent — Colour Shift',texture:'Crystal & Gemstone Facets',mood:'Ethereal & Otherworldly',quality:'Hyperdetailed Masterpiece'}},
+  {id:'astral',label:'🌌 Astral Projection & OBE',icon:'🌌',defaults:{subject:'Astral Traveller',action:'Floating & Levitating',setting:'Astral Void & Stars',time_of_day:'Eternal Midnight',camera_angle:'Bird\'s Eye View — Directly Down',lens:'24mm — Cinematic Wide',dof:'Deep Focus — All Sharp',composition:'Centred — Symmetrical',lighting_type:'Ambient — Soft Wrap Around',light_source:'Spirit Orb Floating',shadow:'No Shadow — High Key',atmosphere:'Energy Particles Sparkling',art_style:'Psychedelic — Vivid & Surreal',render_engine:'Octane Render — Unbiased',colour_palette:'Blue Midnight — Cool Dark',texture:'Smoke & Vapour — Wispy',mood:'Dreamlike & Surreal',quality:'Cinematic Anamorphic'}},
+  {id:'talisman',label:'🧿 Evil Eye & Protection Talismans',icon:'🧿',defaults:{subject:'Altar & Sacred Objects',action:'Holding Sacred Object',setting:'Byzantine Cathedral',time_of_day:'Golden Hour — Sunrise',camera_angle:'Close-Up — Face & Detail',lens:'100mm — Macro Detail',dof:'Shallow DOF — f/2.8',composition:'Centred — Symmetrical',lighting_type:'Cinematic Three-Point',light_source:'Stained Glass Filtered',shadow:'Soft Shadow — Diffused Light',atmosphere:'God Rays — Volumetric Light',art_style:'Byzantine Icon — Gold Flat',render_engine:'Octane Render — Unbiased',colour_palette:'Teal & Copper — Patina',texture:'Carved Stone — Ancient',mood:'Sacred & Devotional',quality:'Museum Quality Fine Art'}},
+  {id:'totem',label:'🦅 Totem Animals & Spirit Guides',icon:'🦅',defaults:{subject:'Elemental Spirit',action:'Flying Through Sky',setting:'Himalayan Mountain Peak',time_of_day:'Golden Hour — Sunrise',camera_angle:'Low Angle — Looking Up',lens:'200mm — Wildlife Style',dof:'Shallow DOF — f/2.8',composition:'Rule Of Thirds',lighting_type:'Natural Only — Practical',light_source:'Solar Flare Burst',shadow:'Long Shadow — Low Sun Angle',atmosphere:'Dust Particles Floating',art_style:'Folk Art — Naive & Bold',render_engine:'Blender Cycles — Ray Traced',colour_palette:'Earthy Muted — Natural Tones',texture:'Feather & Down — Light',mood:'Majestic & Regal',quality:'National Geographic Photo'}},
+  {id:'beads',label:'📿 Prayer Beads & Sacred Objects',icon:'📿',defaults:{subject:'Altar & Sacred Objects',action:'Holding Sacred Object',setting:'Himalayan Mountain Peak',time_of_day:'Early Morning Mist',camera_angle:'Close-Up — Face & Detail',lens:'100mm — Macro Detail',dof:'Macro Depth — Millimetre Thin',composition:'Centred — Symmetrical',lighting_type:'Natural Only — Practical',light_source:'Sun Through Tree Canopy',shadow:'Soft Shadow — Diffused Light',atmosphere:'Misty Water Vapour',art_style:'Photorealism — Hyperdetailed',render_engine:'Octane Render — Unbiased',colour_palette:'Earthy Muted — Natural Tones',texture:'Aged Parchment & Vellum',mood:'Meditative & Still',quality:'Shot On Hasselblad'}},
+  {id:'chakra',label:'🌈 Chakra & Energy Body',icon:'🌈',defaults:{subject:'Astral Traveller',action:'Meditating In Stillness',setting:'Himalayan Mountain Peak',time_of_day:'Golden Hour — Sunrise',camera_angle:'Eye Level — Neutral',lens:'50mm — Standard Neutral',dof:'Medium Depth — Subject Sharp',composition:'Centred — Symmetrical',lighting_type:'Ambient — Soft Wrap Around',light_source:'Crystal & Gemstone Glow',shadow:'Subsurface Scatter — Skin Glow',atmosphere:'Energy Particles Sparkling',art_style:'Digital Painting — Detailed',render_engine:'Octane Render — Unbiased',colour_palette:'Rainbow Spectrum — Full',texture:'Crystal & Gemstone Facets',mood:'Blissful & Transcendent',quality:'Hyperdetailed Masterpiece'}},
+  {id:'omen',label:'☄️ Celestial Omens & Prophecy',icon:'☄️',defaults:{subject:'Celestial Body',action:'Gazing Into Void',setting:'Cosmic Nebula Field',time_of_day:'Solar Eclipse',camera_angle:'Extreme Wide — Epic Landscape',lens:'24mm — Cinematic Wide',dof:'Deep Focus — All Sharp',composition:'Rule Of Thirds',lighting_type:'Back Light — Rim & Silhouette',light_source:'Solar Flare Burst',shadow:'Long Shadow — Low Sun Angle',atmosphere:'God Rays — Volumetric Light',art_style:'Digital Painting — Detailed',render_engine:'Unreal Engine 5 — Lumen',colour_palette:'Fire & Ash — Orange Dark',texture:'Smoke & Vapour — Wispy',mood:'Ominous & Oppressive',quality:'Cinematic Anamorphic'}},
+  {id:'sigil',label:'🔮 Sigil Craft & Spell Work',icon:'🔮',defaults:{subject:'Sigil & Magic Seal',action:'Drawing a Sigil',setting:'Gothic Cathedral Crypt',time_of_day:'Midnight — Witching Hour',camera_angle:'Bird\'s Eye View — Directly Down',lens:'50mm — Standard Neutral',dof:'Deep Focus — All Sharp',composition:'Centred — Symmetrical',lighting_type:'Chiaroscuro — Extreme Contrast',light_source:'Candle Flame Only',shadow:'Deep Shadow — Near Black',atmosphere:'Glowing Runes In Air',art_style:'Engraving — Fine Line Black',render_engine:'Blender Cycles — Ray Traced',colour_palette:'Violet & Gold — Mystical',texture:'Carved Stone — Ancient',mood:'Mysterious & Enigmatic',quality:'Hyperdetailed Masterpiece'}},
+  {id:'shadow',label:'🌑 Dark Moon & Shadow Realm',icon:'🌑',defaults:{subject:'Ghost & Apparition',action:'Emerging From Shadow',setting:'Gothic Cathedral Crypt',time_of_day:'Eternal Midnight',camera_angle:'Dutch Tilt — Angled Frame',lens:'35mm — Natural Human Eye',dof:'Medium Depth — Subject Sharp',composition:'Negative Space — Minimal',lighting_type:'Low Key — Dark & Moody',light_source:'Witch Fire — Green Flame',shadow:'Deep Shadow — Near Black',atmosphere:'Dense Fog & Haze',art_style:'Dark Romanticism — Gloomy',render_engine:'Octane Render — Unbiased',colour_palette:'Black & White — Monochrome',texture:'Obsidian — Glassy Black',mood:'Eerie & Unsettling',quality:'Cinematic 4K Film Grain'}},
+  {id:'sound',label:'🔔 Sound Healing & Frequency Magic',icon:'🔔',defaults:{subject:'Altar & Sacred Objects',action:'Performing a Ritual',setting:'Himalayan Mountain Peak',time_of_day:'Early Morning Mist',camera_angle:'Medium Shot — Waist Up',lens:'50mm — Standard Neutral',dof:'Medium Depth — Subject Sharp',composition:'Rule Of Thirds',lighting_type:'Natural Only — Practical',light_source:'Sun Through Tree Canopy',shadow:'Soft Shadow — Diffused Light',atmosphere:'Misty Water Vapour',art_style:'Photorealism — Hyperdetailed',render_engine:'Octane Render — Unbiased',colour_palette:'Earthy Muted — Natural Tones',texture:'Carved Stone — Ancient',mood:'Meditative & Still',quality:'Cinematic 4K Film Grain'}},
+  {id:'meditation',label:'🧘 Meditation & Inner Vision',icon:'🧘',defaults:{subject:'Shaman in Trance',action:'Meditating In Stillness',setting:'Japanese Zen Garden',time_of_day:'Early Morning Mist',camera_angle:'Eye Level — Neutral',lens:'85mm — Classic Portrait',dof:'Shallow DOF — f/1.8',composition:'Negative Space — Minimal',lighting_type:'Natural Only — Practical',light_source:'Sun Through Tree Canopy',shadow:'Soft Shadow — Diffused Light',atmosphere:'Misty Water Vapour',art_style:'Minimalism — Clean & Sparse',render_engine:'Blender Cycles — Ray Traced',colour_palette:'Muted Pastel — Soft Washed',texture:'Moss & Lichen Covered',mood:'Meditative & Still',quality:'Shot On Hasselblad'}},
+  {id:'aura',label:'✨ Aura Reading & Energy Fields',icon:'✨',defaults:{subject:'Astral Traveller',action:'Channelling Energy',setting:'Astral Void & Stars',time_of_day:'Celestial — No Time',camera_angle:'Medium Shot — Waist Up',lens:'50mm — Standard Neutral',dof:'Medium Depth — Subject Sharp',composition:'Centred — Symmetrical',lighting_type:'Ambient — Soft Wrap Around',light_source:'Crystal & Gemstone Glow',shadow:'Subsurface Scatter — Skin Glow',atmosphere:'Energy Particles Sparkling',art_style:'Digital Painting — Detailed',render_engine:'Octane Render — Unbiased',colour_palette:'Iridescent — Colour Shift',texture:'Smoke & Vapour — Wispy',mood:'Ethereal & Otherworldly',quality:'Hyperdetailed Masterpiece'}},
+  {id:'mystery',label:'🏛 Mystery Schools & Secret Orders',icon:'🏛',defaults:{subject:'High Priest / Priestess',action:'Performing a Ritual',setting:'Byzantine Cathedral',time_of_day:'Midnight — Witching Hour',camera_angle:'Low Angle — Looking Up',lens:'35mm — Natural Human Eye',dof:'Medium Depth — Subject Sharp',composition:'Leading Lines To Subject',lighting_type:'Chiaroscuro — Extreme Contrast',light_source:'Fire Torch Wall-Mounted',shadow:'Deep Shadow — Near Black',atmosphere:'Swirling Arcane Smoke',art_style:'Baroque — Dramatic Classical',render_engine:'Octane Render — Unbiased',colour_palette:'Gold & Shadow — Luxe',texture:'Marble — Veined Polished',mood:'Powerful & Commanding',quality:'Museum Quality Fine Art'}},
+  {id:'grimoire',label:'📖 Ancient Grimoires & Spell Books',icon:'📖',defaults:{subject:'Grimoire & Spell Book',action:'Reading Ancient Text',setting:'Renaissance Alchemist Lab',time_of_day:'Midnight — Witching Hour',camera_angle:'Close-Up — Face & Detail',lens:'100mm — Macro Detail',dof:'Shallow DOF — f/2.8',composition:'Rule Of Thirds',lighting_type:'Rembrandt — Triangle Shadow',light_source:'Candle Flame Only',shadow:'Rembrandt Triangle — Cheek',atmosphere:'Dense Fog & Haze',art_style:'Medieval Illuminated Manuscript',render_engine:'Blender Cycles — Ray Traced',colour_palette:'Gold & Shadow — Luxe',texture:'Aged Parchment & Vellum',mood:'Ancient & Timeless',quality:'Museum Quality Fine Art'}},
+  {id:'portal',label:'🌀 Sacred Portals & Dimensional Gates',icon:'🌀',defaults:{subject:'Arcane Spellcaster',action:'Conjuring a Portal',setting:'Moonlit Stone Circle',time_of_day:'Magic Hour — Twilight',camera_angle:'Eye Level — Neutral',lens:'24mm — Cinematic Wide',dof:'Deep Focus — All Sharp',composition:'Frame Within A Frame',lighting_type:'Back Light — Rim & Silhouette',light_source:'Portal Energy Vortex',shadow:'Coloured Shadow — Tinted',atmosphere:'Energy Particles Sparkling',art_style:'Concept Art — Game & Film',render_engine:'Unreal Engine 5 — Lumen',colour_palette:'Iridescent — Colour Shift',texture:'Smoke & Vapour — Wispy',mood:'Awe-Inspiring & Vast',quality:'Unreal Engine Cinematic'}},
+  {id:'plant',label:'🍄 Shamanic Flight & Plant Medicine',icon:'🍄',defaults:{subject:'Shaman in Trance',action:'Walking Between Worlds',setting:'Amazon Rainforest Temple',time_of_day:'Eternal Midnight',camera_angle:'Eye Level — Neutral',lens:'35mm — Natural Human Eye',dof:'Dreamy Soft Focus Overall',composition:'Layers — Fore Mid Back',lighting_type:'Practical Only — Scene Sources',light_source:'Bioluminescent Organisms',shadow:'Dappled Shadow — Leaf Filter',atmosphere:'Bioluminescent Mist',art_style:'Psychedelic — Vivid & Surreal',render_engine:'Octane Render — Unbiased',colour_palette:'Emerald & Gold — Lush Rich',texture:'Moss & Lichen Covered',mood:'Dreamlike & Surreal',quality:'Cinematic Colour Grade'}},
+  {id:'oracle',label:'🔭 Oracle Traditions & Prophecy Arts',icon:'🔭',defaults:{subject:'Mystic Oracle',action:'Scrying In Mirror',setting:'Greek Mountain Olympus',time_of_day:'Magic Hour — Twilight',camera_angle:'Medium Close-Up — Chest Up',lens:'85mm — Classic Portrait',dof:'Shallow DOF — f/1.8',composition:'Rule Of Thirds',lighting_type:'Rembrandt — Triangle Shadow',light_source:'Sacred Flame Ritual',shadow:'Rembrandt Triangle — Cheek',atmosphere:'Swirling Arcane Smoke',art_style:'Classical',render_engine:'Octane Render — Unbiased',colour_palette:'Gold & Shadow — Luxe',texture:'Marble — Veined Polished',mood:'Mysterious & Enigmatic',quality:'Museum Quality Fine Art'}},
+  {id:'stardust',label:'⭐ Cosmic Stardust & Astral Bodies',icon:'⭐',defaults:{subject:'Celestial Body',action:'Floating & Levitating',setting:'Cosmic Nebula Field',time_of_day:'Celestial — No Time',camera_angle:'Extreme Wide — Epic Landscape',lens:'14mm — Extreme Wide',dof:'Deep Focus — All Sharp',composition:'Atmospheric Perspective — Depth',lighting_type:'Ambient — Soft Wrap Around',light_source:'Star & Nebula Deep Space',shadow:'No Shadow — High Key',atmosphere:'Stars Shooting Overhead',art_style:'Digital Painting — Detailed',render_engine:'Unreal Engine 5 — Lumen',colour_palette:'Blue Midnight — Cool Dark',texture:'Smoke & Vapour — Wispy',mood:'Awe-Inspiring & Vast',quality:'Cinematic Anamorphic'}},
+  {id:'web',label:'🕸️ Web of Wyrd & Fate Weaving',icon:'🕸️',defaults:{subject:'Nature Spirit & Dryad',action:'Walking Between Worlds',setting:'Dark Primordial Forest',time_of_day:'Magic Hour — Twilight',camera_angle:'Eye Level — Neutral',lens:'50mm — Standard Neutral',dof:'Shallow DOF — f/2.8',composition:'Layers — Fore Mid Back',lighting_type:'Natural Only — Practical',light_source:'Moonlight Through Clouds',shadow:'Dappled Shadow — Leaf Filter',atmosphere:'Spider Webs Glistening',art_style:'Dark Romanticism — Gloomy',render_engine:'Octane Render — Unbiased',colour_palette:'Silver & Blue — Cold Metallic',texture:'Thorns & Bramble — Sharp',mood:'Mysterious & Enigmatic',quality:'Cinematic 4K Film Grain'}}
+];
+/* ═══════════════════════════════════════════════════════════
+   CONSTANTS & STORAGE
+═══════════════════════════════════════════════════════════ */
+const LIB_KEY='esoteric_gen_v2';
+const MAX_WORDS=300,MAX_CHARS=2000;
+let _savePending={type:'',text:''};
+
+function libLoad(){try{return JSON.parse(localStorage.getItem(LIB_KEY)||'[]');}catch{return[];}}
+function libSave(a){localStorage.setItem(LIB_KEY,JSON.stringify(a));}
+function trimPrompt(t){
+  let w=t.split(/\s+/).filter(Boolean);
+  if(w.length>MAX_WORDS)t=w.slice(0,MAX_WORDS).join(' ')+'…';
+  if(t.length>MAX_CHARS)t=t.slice(0,MAX_CHARS)+'…';
+  return t;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FIELD RENDERING
+═══════════════════════════════════════════════════════════ */
+const SUBJECT_FIELDS =['subject','action','setting','time_of_day'];
+const CAMERA_FIELDS  =['camera_angle','lens','dof','composition'];
+const LIGHTING_FIELDS=['lighting_type','light_source','shadow','atmosphere'];
+const STYLE_FIELDS   =['art_style','render_engine','colour_palette','texture','mood','quality'];
+
+function buildFieldHTML(key){
+  const f=FIELDS[key];
+  const optsHTML=f.opts.map(o=>`<option value="${o}">${o}</option>`).join('');
+  return `
+    <div class="field-group">
+      <div class="field-header">
+        <div class="field-label">${f.label}</div>
+        <div class="lock-toggle" id="lock_${key}" onclick="toggleLock('${key}')" title="Lock this field"></div>
+      </div>
+      <select class="field-select" id="f_${key}">${optsHTML}</select>
+    </div>`;
+}
+
+function renderFields(){
+  document.getElementById('gridSubject').innerHTML  = SUBJECT_FIELDS.map(buildFieldHTML).join('');
+  document.getElementById('gridCamera').innerHTML   = CAMERA_FIELDS.map(buildFieldHTML).join('');
+  document.getElementById('gridLighting').innerHTML = LIGHTING_FIELDS.map(buildFieldHTML).join('');
+  document.getElementById('gridStyle').innerHTML    = STYLE_FIELDS.map(buildFieldHTML).join('');
+}
+
+function getFieldVal(key){
+  const el=document.getElementById(`f_${key}`);
+  return el?el.value:'';
+}
+
+function setFieldVal(key,val){
+  const el=document.getElementById(`f_${key}`);
+  if(!el)return;
+  const exists=[...el.options].some(o=>o.value===val);
+  if(exists)el.value=val;
+}
+
+function isLocked(key){
+  const l=document.getElementById(`lock_${key}`);
+  return l&&l.classList.contains('on');
+}
+
+function toggleLock(key){
+  const l=document.getElementById(`lock_${key}`);
+  if(l)l.classList.toggle('on');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THEME APPLICATION
+═══════════════════════════════════════════════════════════ */
+function applyTheme(){
+  const sel=document.getElementById('themeSelect');
+  const idx=sel.selectedIndex;
+  const theme=THEMES[idx];
+  document.getElementById('themeIcon').textContent=theme.icon;
+  const d=theme.defaults||{};
+  Object.keys(FIELDS).forEach(key=>{
+    if(!isLocked(key)){
+      if(d[key])setFieldVal(key,d[key]);
+      else setFieldVal(key,'None');
+    }
+  });
+  BG.switch(idx);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PROMPT BUILDER
+═══════════════════════════════════════════════════════════ */
+function collectValues(){
+  const v={};
+  Object.keys(FIELDS).forEach(k=>{v[k]=getFieldVal(k);});
+  return v;
+}
+
+function buildPhoto(v,themeLabel){
+  const parts=[];
+  if(themeLabel&&themeLabel!=='— Select a Theme —')parts.push(themeLabel.replace(/^.+?\s/,''));
+  const order=['subject','action','setting','time_of_day','composition','camera_angle','lens','dof','lighting_type','light_source','shadow','atmosphere','art_style','render_engine','colour_palette','texture','mood','quality'];
+  order.forEach(k=>{if(v[k]&&v[k]!=='None')parts.push(v[k]);});
+  return trimPrompt(parts.join(', '));
+}
+
+function buildVideo(v,themeLabel){
+  const parts=['Cinematic sequence'];
+  if(themeLabel&&themeLabel!=='— Select a Theme —')parts.push(themeLabel.replace(/^.+?\s/,''));
+  const order=['subject','action','setting','time_of_day','atmosphere','camera_angle','lens','dof','lighting_type','light_source','shadow','composition','art_style','render_engine','colour_palette','mood'];
+  order.forEach(k=>{if(v[k]&&v[k]!=='None')parts.push(v[k]);});
+  parts.push('slow cinematic movement','shallow depth of field rack focus','4K film quality','anamorphic lens flare');
+  return trimPrompt(parts.join(', '));
+}
+
+function buildSuno(v,themeLabel){
+  const theme=themeLabel&&themeLabel!=='— Select a Theme —'?themeLabel.replace(/^.+?\s/,''):'Esoteric';
+  const mood=v.mood&&v.mood!=='None'?v.mood:'Atmospheric';
+  const atmos=v.atmosphere&&v.atmosphere!=='None'?v.atmosphere:'';
+  const setting=v.setting&&v.setting!=='None'?v.setting:'';
+  const dark=['Dark','Eerie','Ominous','Menacing','Eldritch','Desolate','Chaotic','Haunting'].some(d=>mood.includes(d));
+  const genre=dark?'dark ambient, cinematic horror score':'ethereal ambient, mystical cinematic score';
+  return trimPrompt(`[${theme}] ${mood} atmosphere, ${genre}, reverb-heavy pads, slow evolving textures, ${atmos}, ${setting}, no lyrics, meditative drone, 432hz tuning, orchestral underscore`);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GENERATE & DISPLAY
+═══════════════════════════════════════════════════════════ */
+function generatePrompts(){
+  const v=collectValues();
+  const sel=document.getElementById('themeSelect');
+  const themeLabel=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:'';
+  const photo=buildPhoto(v,themeLabel);
+  const video=buildVideo(v,themeLabel);
+  const suno=buildSuno(v,themeLabel);
+
+  document.getElementById('outputSection').innerHTML=`
+    ${card('📷 Photo / Image Prompt','photo',photo)}
+    ${card('🎬 Video / Animation Prompt','video',video)}
+    ${card('🎵 Suno Music Prompt','suno',suno)}
+  `;
+}
+
+function card(label,type,text){
+  const wc=text.split(/\s+/).filter(Boolean).length;
+  const safeText=text.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
+  return `
+    <div class="output-card">
+      <div class="output-label">
+        <span>${label}</span>
+        <button class="copy-btn" onclick="copyText(\`${safeText}\`,this)">Copy</button>
+      </div>
+      <div class="output-text">${text}</div>
+      <div class="output-meta">${wc} words · ${text.length} chars</div>
+      <div class="output-actions">
+        <button class="btn btn-ghost" onclick="openSaveModal('${type}',\`${safeText}\`)">💾 Save</button>
+      </div>
+    </div>`;
+}
+
+function copyText(text,btn){
+  navigator.clipboard.writeText(text).then(()=>{
+    if(btn){const o=btn.textContent;btn.textContent='✓ Copied';setTimeout(()=>btn.textContent=o,2000);}
+    showToast('Copied to clipboard!');
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RANDOMISE & RESET
+═══════════════════════════════════════════════════════════ */
+function randomiseAll(){
+  Object.keys(FIELDS).forEach(key=>{
+    if(isLocked(key))return;
+    const opts=FIELDS[key].opts;
+    setFieldVal(key,opts[Math.floor(Math.random()*opts.length)]);
+  });
+}
+
+function resetFields(){
+  const sel=document.getElementById('themeSelect');
+  const idx=sel.selectedIndex;
+  const theme=THEMES[idx];
+  Object.keys(FIELDS).forEach(key=>{
+    if(isLocked(key))return;
+    const d=theme.defaults||{};
+    setFieldVal(key,d[key]||'None');
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SAVE / LIBRARY
+═══════════════════════════════════════════════════════════ */
+function openSaveModal(type,text){
+  _savePending={type,text};
+  const sel=document.getElementById('themeSelect');
+  const theme=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:'';
+  document.getElementById('saveTitle').value=`${theme} — ${type}`;
+  document.getElementById('savePreview').textContent=text.slice(0,150)+'…';
+  document.getElementById('saveModal').classList.add('open');
+}
+
+function closeSaveModal(){document.getElementById('saveModal').classList.remove('open');}
+
+function confirmSave(){
+  const title=document.getElementById('saveTitle').value.trim()||'Untitled';
+  const{type,text}=_savePending;
+  const sel=document.getElementById('themeSelect');
+  const theme=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:'';
+  const entry={id:Date.now(),title,prompt:text,type,world:theme,date:new Date().toLocaleDateString()};
+  const lib=libLoad();lib.unshift(entry);libSave(lib);
+  closeSaveModal();renderLibrary();showToast('Saved!');
+}
+
+function openLibrary(){document.getElementById('libraryPanel').classList.add('open');renderLibrary();}
+function closeLibrary(){document.getElementById('libraryPanel').classList.remove('open');}
+
+function renderLibrary(){
+  const lib=libLoad();
+  const q=(document.getElementById('libSearch').value||'').toLowerCase();
+  const filtered=lib.filter(e=>!q||e.title.toLowerCase().includes(q)||e.prompt.toLowerCase().includes(q));
+  const container=document.getElementById('libList');
+  if(!filtered.length){container.innerHTML='<div style="color:var(--tm);font-size:.8rem;text-align:center;padding:24px;">No saved prompts yet.</div>';return;}
+  container.innerHTML=filtered.map(e=>`
+    <div class="lib-card" onclick="openRecallModal(${e.id})">
+      <div class="lib-card-title">${e.title}</div>
+      <div class="lib-card-meta">${e.world||''} · ${e.type} · ${e.date}</div>
+      <div class="lib-card-preview">${e.prompt}</div>
+      <div style="margin-top:8px;display:flex;gap:6px;">
+        <button class="copy-btn" onclick="event.stopPropagation();copyText('${e.prompt.replace(/'/g,"\\'").replace(/\n/g,' ')}',this)">Copy</button>
+        <button class="copy-btn" style="color:#ef9999;" onclick="event.stopPropagation();deleteLib(${e.id})">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function openRecallModal(id){
+  const entry=libLoad().find(e=>e.id===id);
+  if(!entry)return;
+  document.getElementById('recallContent').innerHTML=`
+    <div style="color:var(--a2);font-size:.75rem;margin-bottom:6px;">${entry.title}</div>
+    <div style="color:var(--tm);font-size:.7rem;margin-bottom:12px;">${entry.world||''} · ${entry.type} · ${entry.date}</div>
+    <div>${entry.prompt}</div>`;
+  document.getElementById('recallCopyBtn').onclick=()=>copyText(entry.prompt,document.getElementById('recallCopyBtn'));
+  document.getElementById('recallModal').classList.add('open');
+}
+
+function closeRecallModal(){document.getElementById('recallModal').classList.remove('open');}
+
+function deleteLib(id){
+  libSave(libLoad().filter(e=>e.id!==id));renderLibrary();showToast('Deleted.');
+}
+
+function clearLib(){
+  if(confirm('Clear all saved prompts?')){libSave([]);renderLibrary();showToast('Library cleared.');}}
+
+function exportLib(){
+  const blob=new Blob([JSON.stringify(libLoad(),null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`esoteric_prompts_${Date.now()}.json`;a.click();
+  showToast('Exported!');
+}
+
+function importLib(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data))throw new Error();
+      const lib=libLoad();
+      data.forEach(entry=>{if(!lib.find(x=>x.id===entry.id))lib.push(entry);});
+      libSave(lib);renderLibrary();openLibrary();showToast(`Imported ${data.length} prompts!`);
+    }catch{showToast('Import failed — invalid file.');}
+  };
+  reader.readAsText(file);e.target.value='';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════════ */
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._to);t._to=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BACKGROUND ENGINE
+═══════════════════════════════════════════════════════════ */
+const BG=(()=>{
+  const canvas=document.getElementById('bgCanvas');
+  const ctx=canvas.getContext('2d');
+  let W=0,H=0,raf=null,tick=0,ci=0;
+  const particles=[];
+  const COLS=[
+    ['#7c5cbf','#b084f5','#1a1228'],['#38c4f5','#b084f5','#0d1520'],
+    ['#f59e0b','#b084f5','#1a1205'],['#b084f5','#38c4f5','#0d0b14'],
+    ['#34d9a0','#b084f5','#0a1a14'],['#34d9a0','#f472c0','#0d0b14'],
+    ['#34d9a0','#38c4f5','#0a1410'],['#f472c0','#b084f5','#180d14'],
+    ['#ef4444','#b084f5','#1a0808'],['#f59e0b','#34d9a0','#0d1205'],
+    ['#38c4f5','#34d9a0','#080d14'],['#b084f5','#38c4f5','#13101f'],
+    ['#f472c0','#38c4f5','#140810'],['#f59e0b','#ef4444','#140a00'],
+    ['#f59e0b','#b084f5','#13101f'],['#8b5cf6','#b084f5','#0d0814'],
+    ['#34d9a0','#8b5cf6','#080d14'],['#b084f5','#f59e0b','#130d00'],
+    ['#ef4444','#f59e0b','#140800'],['#38c4f5','#b084f5','#080d14'],
+    ['#f59e0b','#34d9a0','#0d1400'],['#b084f5','#f472c0','#130814'],
+    ['#34d9a0','#38c4f5','#081414'],['#f472c0','#34d9a0','#0d140a'],
+    ['#8b5cf6','#38c4f5','#0a0814'],['#b084f5','#8b5cf6','#100814'],
+    ['#38c4f5','#f59e0b','#081014'],['#f472c0','#b084f5','#13101f'],
+    ['#ef4444','#8b5cf6','#140814'],['#b084f5','#34d9a0','#0a1410'],
+    ['#34d9a0','#f59e0b','#0a1400'],['#8b5cf6','#f472c0','#100814'],
+    ['#38c4f5','#ef4444','#081414'],['#f59e0b','#38c4f5','#0d0d00'],
+    ['#b084f5','#ef4444','#130814'],['#34d9a0','#b084f5','#13101f'],
+    ['#f472c0','#f59e0b','#140d08'],['#8b5cf6','#34d9a0','#0a0d14'],
+    ['#38c4f5','#8b5cf6','#080814'],['#b084f5','#38c4f5','#0d0b14']
+  ];
+
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+
+  function spawn(){
+    const[c1,c2]=COLS[ci]||COLS[0];
+    particles.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,r:Math.random()*1.8+.4,life:1,decay:Math.random()*.0025+.0008,col:Math.random()<.5?c1:c2,tw:Math.random()*Math.PI*2});
+  }
+
+  function draw(){
+    const[c1,c2,bg]=COLS[ci]||COLS[0];
+    const gr=ctx.createRadialGradient(W*.5,H*.5,0,W*.5,H*.5,Math.max(W,H)*.85);
+    gr.addColorStop(0,bg);gr.addColorStop(1,'#0d0b14');
+    ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
+
+    for(let i=0;i<3;i++){
+      const ox=W*(.2+i*.3)+Math.sin(tick*.0007+i)*W*.08;
+      const oy=H*(.3+i*.2)+Math.cos(tick*.0009+i)*H*.08;
+      const g=ctx.createRadialGradient(ox,oy,0,ox,oy,180+i*50);
+      g.addColorStop(0,(i%2===0?c1:c2)+'1a');g.addColorStop(1,'transparent');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(ox,oy,280,0,Math.PI*2);ctx.fill();
+    }
+
+    if(tick%4===0&&particles.length<60)spawn();
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i];
+      p.x+=p.vx;p.y+=p.vy;p.life-=p.decay;p.tw+=.04;
+      if(p.life<=0){particles.splice(i,1);continue;}
+      ctx.globalAlpha=p.life*(.5+.3*Math.sin(p.tw));
+      ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+
+    ctx.strokeStyle=c1+'12';ctx.lineWidth=.4;
+    const step=70;
+    for(let x=0;x<W;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+    tick++;raf=requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize',resize);resize();
+  return{start:()=>{if(!raf)draw();},stop:()=>{cancelAnimationFrame(raf);raf=null;},switch:i=>{ci=i;}};
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',()=>{
+  // Build theme dropdown
+  const sel=document.getElementById('themeSelect');
+  THEMES.forEach(t=>{
+    const o=document.createElement('option');
+    o.value=t.id;o.textContent=t.label;
+    sel.appendChild(o);
+  });
+
+  // Render all field grids
+  renderFields();
+
+  // Modal close on overlay click
+  document.getElementById('saveModal').addEventListener('click',function(e){if(e.target===this)closeSaveModal();});
+  document.getElementById('recallModal').addEventListener('click',function(e){if(e.target===this)closeRecallModal();});
+
+  BG.start();
+});
+</script>
+</body>
+</html>
